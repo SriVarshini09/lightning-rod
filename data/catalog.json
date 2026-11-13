@@ -1,0 +1,22 @@
+{
+  "store": "Brightcart",
+  "start_clock": "06:00",
+  "approve_clock": "14:15",
+  "policy_text": "Price adjustment within 14 days of purchase",
+  "note": "Product names and prices are placeholders until scripts/pick_products.py has been run at 9:30.",
+  "products": [
+    {"sku": "airfryer", "name": "Ninja 6-Qt Air Fryer", "emoji": "🍟", "price": 69, "was": 129, "badge": "46% OFF", "live": true},
+    {"sku": "vacuum", "name": "Shark Robot Vacuum", "emoji": "🧹", "price": 179, "was": 299, "badge": "40% OFF", "live": true},
+    {"sku": "tv", "name": "TCL 65\" QM7 QLED 4K TV", "emoji": "📺", "price": 999, "was": 999, "live": false},
+    {"sku": "console", "name": "PlayStation 5 Slim Bundle", "emoji": "🎮", "price": 449, "was": 499, "in_stock": false, "live": false,
+     "addons": [{"id": "plan", "name": "2-Year Protection Plan", "price": 39, "preticked": true}]},
+    {"sku": "headphones", "name": "Sony WH-1000XM5 Headphones", "emoji": "🎧", "price": 399, "was": 399, "live": false}
+  ],
+  "beats": [
+    {"id": "tv", "label": "1 · TV fake deal", "clock": "09:14", "sku": "tv", "set": {"live": true, "price": 649, "was": 999, "badge": "35% OFF"}},
+    {"id": "restock", "label": "2 · Console restock", "clock": "12:30", "sku": "console", "set": {"live": true, "in_stock": true, "badge": "BACK IN STOCK"}},
+    {"id": "lightning", "label": "3 · Lightning deal", "clock": "14:02", "sku": "headphones", "set": {"live": true, "price": 279, "was": 399, "badge": "LIGHTNING DEAL", "hold_minutes": 15}},
+    {"id": "drop", "label": "4 · Price drop", "clock": "16:40", "sku": "headphones", "set": {"price": 249, "was": 279, "badge": "PRICE DROP", "hold_minutes": 0}},
+    {"id": "end", "label": "End of shift", "clock": "18:00"}
+  ]
+}

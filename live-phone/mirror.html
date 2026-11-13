@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Phone</title>
+<style>
+:root{
+  /* One job: the live phone, as big as the screen allows, on a dark stage. */
+  --stage:#05080d;
+  --bezel:#010204;
+  --edge:#2a3442;
+  --ink:#e8eef5;
+  --muted:#7d8a99;
+  --tap:#ffb547;
+  --live:#ff4d4f;
+  --font:"Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;background:var(--stage);color:var(--ink);font-family:var(--font);overflow:hidden}
+body.idle{cursor:none}
+.wrap{height:100%;display:grid;place-items:center}
+.phone{position:relative;height:92vh;aspect-ratio:var(--ar,1080 / 2340);max-width:94vw;border-radius:5.6vh;background:var(--bezel);padding:1.3vh;box-shadow:0 0 0 2px var(--edge),0 40px 120px rgba(0,0,0,.7)}
+.screen{position:relative;width:100%;height:100%;border-radius:4.4vh;overflow:hidden;background:#0b0f15}
+.screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.fx{position:absolute;inset:0;pointer-events:none}
+.tap{position:absolute;width:12%;aspect-ratio:1;border-radius:50%;border:4px solid var(--tap);background:color-mix(in srgb,var(--tap) 30%,transparent);box-shadow:0 0 0 4px rgba(0,0,0,.28);transform:translate(-50%,-50%) scale(.4);animation:tap .8s ease-out forwards}
+.tap.long{animation-duration:1.4s;border-width:6px}
+@keyframes tap{to{transform:translate(-50%,-50%) scale(1.8);opacity:0}}
+.dot{position:absolute;width:7%;aspect-ratio:1;border-radius:50%;background:var(--tap);box-shadow:0 0 0 6px color-mix(in srgb,var(--tap) 35%,transparent);transform:translate(-50%,-50%);transition:left .45s ease,top .45s ease,opacity .4s ease .5s}
+.live{position:fixed;top:18px;left:20px;display:flex;align-items:center;gap:8px;font:600 14px/1 var(--font);letter-spacing:.08em;color:var(--muted)}
+.live i{width:10px;height:10px;border-radius:50%;background:var(--live);box-shadow:0 0 0 0 var(--live);animation:pulse 1.6s infinite}
+.live b{color:var(--ink)}
+.live.off{display:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px transparent}}
+.msg{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:8px;background:rgba(20,28,38,.92);color:var(--ink);font-size:14px;max-width:90vw}
+.msg[hidden]{display:none}
+@media (prefers-reduced-motion: reduce){
+  .tap,.live i{animation-duration:.01ms}
+  .dot{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="live" id="live"><i></i><b>LIVE</b>Phone Use cloud phone</div>
+<div class="wrap">
+  <div class="phone" id="phone">
+    <div class="screen">
+      <img id="frame" alt="Live screen of the phone the agent is using">
+      <div class="fx" id="fx"></div>
+    </div>
+  </div>
+</div>
+<div class="msg" id="msg" role="status">Waiting for the phone's first screenshot…</div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const img = $('frame'), fx = $('fx'), phone = $('phone'), msg = $('msg');
+const FRAME_MS = 200, EVENTS_MS = 150, STALE_MS = 6000;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let lastSeq = -1, lastUrl = null, lastOk = 0, lastEvent = 0, primed = false, ratio = '';
+let shownMode = 'live';
+const LABELS = {
+  live: '<i></i><b>LIVE</b>Phone Use cloud phone',
+  test: '<i></i><b>TEST</b>Local test phone, not Phone Use',
+  mock: '<i></i><b>TEST</b>Mock phone, not live',
+  replay: '<i style="background:#7d8a99;animation:none"></i><b>RECORDED</b>Replay of an earlier run',
+};
+
+function say(text){ msg.hidden = !text; if (text) msg.textContent = text; }
+
+async function frames(){
+  for (;;){
+    try {
+      const r = await fetch('/frame', { cache: 'no-store' });
+      const error = r.headers.get('X-Mirror-Error');
+      const seq = Number(r.headers.get('X-Frame-Seq') || 0);
+      const mode = r.headers.get('X-Mirror-Mode');
+      if (mode && mode !== shownMode){ shownMode = mode; $('live').innerHTML = LABELS[mode] || LABELS.live; }
+      if (r.status === 200 && seq !== lastSeq){
+        const url = URL.createObjectURL(await r.blob());
+        const pre = new Image(); pre.src = url; await pre.decode();
+        const ar = `${pre.naturalWidth} / ${pre.naturalHeight}`;
+        if (pre.naturalWidth && ar !== ratio){ phone.style.setProperty('--ar', ar); ratio = ar; }
+        img.src = url;
+        if (lastUrl) URL.revokeObjectURL(lastUrl);
+        lastUrl = url; lastSeq = seq; lastOk = Date.now();
+      }
+      if (error) say(error);
+      else if (lastSeq < 0) say("Waiting for the phone's first screenshot…");
+      else if (Date.now() - lastOk > STALE_MS) say('The phone screen has not changed for a while. Is the agent running?');
+      else say('');
+    } catch (e) {
+      say("Can't reach the mirror server. Is server.py still running?");
+    }
+    await sleep(FRAME_MS);
+  }
+}
+
+function at(el, x, y){ el.style.left = (x / 10) + '%'; el.style.top = (y / 10) + '%'; }
+function draw(e){
+  if (e.kind === 'tap' || e.kind === 'long_press'){
+    const t = document.createElement('div'); t.className = 'tap' + (e.kind === 'long_press' ? ' long' : '');
+    at(t, e.x, e.y); fx.appendChild(t); setTimeout(() => t.remove(), 1600);
+  } else if (e.kind === 'swipe'){
+    const t = document.createElement('div'); t.className = 'tap'; at(t, e.x, e.y); fx.appendChild(t);
+    const d = document.createElement('div'); d.className = 'dot'; at(d, e.x, e.y); fx.appendChild(d);
+    requestAnimationFrame(() => requestAnimationFrame(() => { at(d, e.x2, e.y2); d.style.opacity = '0'; }));
+    setTimeout(() => { t.remove(); d.remove(); }, 1400);
+  }
+}
+
+async function events(){
+  for (;;){
+    try {
+      const r = await fetch('/events?since=' + lastEvent, { cache: 'no-store' });
+      const list = await r.json();
+      for (const e of list){ lastEvent = Math.max(lastEvent, e.id); if (primed) draw(e); }
+      primed = true;
+    } catch (e) { /* the frame loop already reports a lost server */ }
+    await sleep(EVENTS_MS);
+  }
+}
+
+// F: full screen. L: show or hide the LIVE label. R: restart a replay. The cursor hides when idle.
+addEventListener('keydown', e => {
+  if (e.key === 'f' || e.key === 'F'){
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen().catch(() => {});
+  } else if (e.key === 'l' || e.key === 'L'){ $('live').classList.toggle('off'); }
+  else if ((e.key === 'r' || e.key === 'R') && shownMode === 'replay'){ fetch('/replay/restart', {method: 'POST'}); }
+});
+let idle;
+addEventListener('mousemove', () => { document.body.classList.remove('idle'); clearTimeout(idle); idle = setTimeout(() => document.body.classList.add('idle'), 2000); });
+
+frames(); events();
+})();
+</script>
+</body>
+</html>

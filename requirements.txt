@@ -1,0 +1,4 @@
+# The hub (Replit). The laptop also needs requirements-laptop.txt.
+fastapi>=0.110
+uvicorn>=0.27
+anthropic>=2.4

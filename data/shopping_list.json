@@ -1,0 +1,10 @@
+{
+  "owner": "Maya",
+  "budget": 750,
+  "fake_ratio": 0.95,
+  "items": [
+    {"key": "console", "label": "PS5 bundle for Leo", "match": ["playstation", "ps5"], "mode": "auto", "limit": 450, "needs_real_deal": false},
+    {"key": "headphones", "label": "Noise-cancelling headphones", "match": ["wh-1000xm5", "headphones"], "mode": "ask_first", "limit": 300, "needs_real_deal": true},
+    {"key": "tv", "label": "65-inch TV, only at a real low price", "match": ["qled", "4k tv", " tv"], "mode": "auto", "limit": 600, "needs_real_deal": true}
+  ]
+}

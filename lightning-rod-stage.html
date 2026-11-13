@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lightning Rod Demo Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  /* Layout: a 1600x900 stage dressed as a bedside monitor for Maya's shift.
+     Left: the phone the agent drives. Center: her shift trace, the deal radar, her list.
+     Right: vitals and the agent log. Bottom: captions and the director timeline. */
+  --bg:#07101b;
+  --panel:#0c1826;
+  --line:#1a2b3f;
+  --ink:#e6eef6;
+  --muted:#7f96ad;
+  --calm:#3ddc84;
+  --cash:#5bc4f5;
+  --deal:#ffb547;
+  --fake:#ff6b6b;
+  --font-display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --font-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform:translate(-50%,-50%);transform-origin:50% 50%;display:grid;grid-template-rows:72px 1fr 148px;gap:16px;padding:20px 24px}
+
+/* Header */
+.top{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:28px;padding:0 20px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.brand{display:flex;align-items:center;gap:10px;font:700 30px/1 var(--font-display);letter-spacing:.04em;text-transform:uppercase}
+.brand svg{width:26px;height:26px;fill:var(--deal)}
+.who{color:var(--muted);font-size:15px}
+.who b{color:var(--ink);font-weight:600}
+.clock{font:600 46px/1 var(--font-display);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.dnd{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-weight:600;font-size:15px;transition:.4s}
+.dnd svg{width:18px;height:18px;fill:currentColor}
+.dnd b{font:700 19px/1 var(--font-display);letter-spacing:.08em}
+.dnd.on{color:var(--calm);border-color:color-mix(in srgb,var(--calm) 55%,transparent);background:color-mix(in srgb,var(--calm) 10%,transparent)}
+
+/* Main grid */
+.main{display:grid;grid-template-columns:340px 1fr 420px;gap:20px;min-height:0;position:relative}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-height:0;display:flex;flex-direction:column;gap:8px}
+.panel-head{display:flex;align-items:baseline;gap:12px;font-size:13px;color:var(--muted)}
+.panel-head .end{margin-left:auto}
+.panel-head .end b{color:var(--ink);font:600 18px var(--font-display);font-variant-numeric:tabular-nums}
+.ch{font:600 15px/1 var(--font-display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.ch.calm{color:var(--calm)} .ch.deal{color:var(--deal)} .ch.cash{color:var(--cash)}
+
+/* Phone column */
+.phone-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.phone-label{font:600 15px/1 var(--font-display);letter-spacing:.12em;text-transform:uppercase;color:var(--cash)}
+.phone{position:relative;width:272px;height:556px;border-radius:42px;background:#02060b;padding:10px;box-shadow:0 0 0 1px #24364c,0 30px 60px rgba(0,0,0,.5)}
+.screen{position:relative;width:100%;height:100%;border-radius:32px;overflow:hidden;background:#0b1622}
+.notch{position:absolute;top:18px;left:50%;width:78px;height:20px;margin-left:-39px;background:#02060b;border-radius:12px;z-index:8}
+.phone-foot{font:500 12px var(--font-mono);color:var(--muted);text-align:center}
+.page{position:absolute;inset:0;display:flex;flex-direction:column;font-size:12px;animation:pageIn .35s ease both}
+.page.still{animation:none}
+.page.out{animation:pageOut .3s ease both}
+@keyframes pageIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes pageOut{to{opacity:0}}
+
+/* Phone status bar */
+.sb{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:4px 20px 0;font:600 11px var(--font-body);color:#fff}
+.sb .ic{display:flex;gap:5px;align-items:center}
+.sb svg{width:11px;height:11px;fill:currentColor}
+.sig{width:14px;height:9px;background:currentColor;clip-path:polygon(0 100%,100% 0,100% 100%)}
+.bat{width:18px;height:9px;border:1.5px solid currentColor;border-radius:3px;position:relative}
+.bat::after{content:"";position:absolute;inset:1px 30% 1px 1px;background:currentColor;border-radius:1px}
+
+/* Store apps (fictional stores) */
+.store{background:#f3f4f6;color:#151a22;height:100%;display:flex;flex-direction:column;position:relative}
+.band{background:var(--brand);color:#fff;padding-bottom:10px;flex:none}
+.band .row{display:flex;align-items:center;gap:8px;padding:2px 14px 0;font:700 18px/1 var(--font-display);letter-spacing:.04em}
+.band .row .back{font:400 20px/1 var(--font-body);opacity:.9}
+.band .row .cart{margin-left:auto;font:500 11px var(--font-body);opacity:.9;letter-spacing:0}
+.search{margin:8px 14px 0;background:rgba(255,255,255,.92);color:#6b7280;border-radius:9px;padding:6px 10px;font-size:11px}
+.body{padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.sect{font:700 15px/1 var(--font-display);letter-spacing:.04em;text-transform:uppercase;color:#374151}
+.art{background:#fff;border-radius:12px;display:grid;place-items:center;padding:10px;height:118px}
+.art svg{width:100%;height:100%}
+.pname{font-weight:600;font-size:14px;line-height:1.25}
+.price{display:flex;align-items:baseline;gap:8px}
+.price b{font:700 30px/1 var(--font-display)}
+.price s,.price em{color:#6b7280;font-size:12px;font-style:normal}
+.price .drop{color:#16a34a;font-weight:700;text-decoration:none}
+.badge{align-self:flex-start;display:inline-block;font-weight:700;font-size:10px;padding:3px 7px;border-radius:5px;background:var(--brand);color:#fff;letter-spacing:.04em}
+.badge.green{background:#16a34a}
+.badge.gold{background:#ffd166;color:#151a22}
+.meta{color:#4b5563;font-size:11px}
+.claimed{height:7px;border-radius:4px;background:#e5e7eb;overflow:hidden}
+.claimed i{display:block;height:100%;background:var(--brand)}
+.cta{position:absolute;left:6%;right:6%;bottom:4%;height:6%;border-radius:11px;background:var(--brand);color:#fff;font:600 13px var(--font-body);display:grid;place-items:center}
+.cta.wait{background:#d1d5db;color:#4b5563}
+.row-item{display:flex;gap:10px;align-items:center;background:#fff;border-radius:10px;padding:8px}
+.row-item b{font:700 16px var(--font-display)}
+.grow{flex:1;min-width:0}
+.grow div:first-child{font-weight:600}
+.thumb{width:42px;height:42px;border-radius:8px;background:#eef0f3;display:grid;place-items:center;flex:none;overflow:hidden}
+.thumb svg{width:38px;height:30px}
+.kv{display:flex;justify-content:space-between;gap:8px;background:#fff;border-radius:10px;padding:9px 10px}
+.kv span{color:#6b7280}
+.done{flex:1;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center;padding:0 16px}
+.done .ok{width:64px;height:64px;border-radius:50%;background:#16a34a;display:grid;place-items:center}
+.done .ok svg{width:36px;height:36px;fill:#fff}
+.done h4{margin:0;font-size:18px}
+.banner{position:absolute;top:20%;left:5%;right:5%;height:30%;border-radius:14px;background:#151a22;color:#fff;padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:6px}
+.banner .big{font:700 32px/.95 var(--font-display);color:#ffd166;margin:6px 0 4px}
+.below{position:absolute;top:53%;left:5%;right:5%;display:flex;flex-direction:column;gap:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:#fff;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:3px}
+.tile .thumb{width:100%;height:52px}
+.tile b{font:700 18px/1 var(--font-display)}
+.tile em{font-style:normal;color:#16a34a;font-weight:600;font-size:11px}
+.ld{background:#fff;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:5px}
+.ld .top2{display:flex;justify-content:space-between}
+.ld .top2 b{font:700 16px var(--font-display)}
+.hold{background:#fff;border-radius:12px;padding:14px;text-align:center;display:flex;flex-direction:column;gap:4px}
+.hold .cd{font:700 46px/1 var(--font-display);font-variant-numeric:tabular-nums;color:var(--brand)}
+.note-l{background:#ecfdf5;color:#065f46;border-radius:10px;padding:8px 10px;font-size:11px}
+.chat{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:84%;padding:8px 10px;border-radius:12px;line-height:1.35;font-size:11.5px}
+.msg.me{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+.msg.them{align-self:flex-start;background:#fff;border-bottom-left-radius:4px}
+.msg small{display:block;font-size:9.5px;opacity:.75;margin-bottom:2px;font-weight:600}
+.msg.new{animation:msgIn .45s ease both}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}}
+.typebar{margin:0 12px 14px;background:#fff;border-radius:18px;padding:9px 12px;color:#9ca3af;font-size:11px}
+
+/* Dark phone screens: Lightning Rod app, agent home, lock screen */
+.lr{background:#0c1826;color:var(--ink);height:100%;display:flex;flex-direction:column;position:relative}
+.lr h3{margin:6px 16px 2px;font:700 23px/1.1 var(--font-display);letter-spacing:.02em}
+.lr .sub{margin:0 16px 10px;color:var(--muted);font-size:11px}
+.lr .it{margin:0 12px 7px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.lr .it b{font-size:12.5px}
+.lr .it small{color:var(--muted)}
+.rule{align-self:flex-start;font:600 10px var(--font-mono);padding:2px 6px;border-radius:4px;border:1px solid currentColor;margin-top:2px}
+.lr .note{margin:4px 12px 0;font-size:11px;color:var(--muted);line-height:1.4;border-left:2px solid var(--deal);padding-left:8px}
+.lr .cta{background:var(--deal);color:#1a1205}
+.lr .cta.on{background:var(--calm);color:#04210f}
+.home{height:100%;display:flex;flex-direction:column;background:linear-gradient(160deg,#142a44,#0a1420 60%,#1b1430)}
+.widget{margin:16px 14px;padding:12px;border-radius:16px;background:rgba(255,255,255,.08);display:flex;flex-direction:column;gap:4px;color:#fff}
+.widget .w-h{display:flex;align-items:center;gap:6px;font:600 11px var(--font-body);color:var(--deal)}
+.widget .w-h svg{width:12px;height:12px;fill:currentColor}
+.widget b{font-size:14px}
+.widget small{color:#b8c7d6;font-size:11px}
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:6px 18px;color:#fff}
+.app{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10.5px}
+.app i{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font:700 26px var(--font-display);font-style:normal;color:#fff}
+.lock{height:100%;display:flex;flex-direction:column;align-items:center;background:linear-gradient(170deg,#25324a,#0b1320 55%,#30203a);color:#fff}
+.lock .lt{font:600 64px/1 var(--font-display);margin-top:30px;font-variant-numeric:tabular-nums}
+.lock .ld2{font-size:12px;color:#c9d6e3;margin-top:6px}
+.notif{margin:26px 12px 0;padding:11px 12px;border-radius:16px;background:rgba(255,255,255,.14);display:flex;flex-direction:column;gap:4px;align-self:stretch;animation:msgIn .6s .3s ease both}
+.notif .nh{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#d6e1ec}
+.notif .nh svg{width:12px;height:12px;fill:var(--deal)}
+.notif .nh span{margin-left:auto}
+.notif b{font-size:13px}
+.notif p{margin:0;font-size:11.5px;line-height:1.4;color:#e8eef4}
+.lock .dndoff{margin-top:12px;font-size:10.5px;color:#c9d6e3}
+
+/* Tap ripples and stamp */
+.taps{position:absolute;inset:0;pointer-events:none;z-index:9}
+.tap{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:3px solid var(--deal);background:color-mix(in srgb,var(--deal) 30%,transparent);box-shadow:0 0 0 3px rgba(0,0,0,.25);animation:tap .75s ease-out forwards}
+@keyframes tap{from{transform:scale(.4);opacity:1}to{transform:scale(1.7);opacity:0}}
+.tap-label{position:absolute;transform:translate(-50%,-190%);font:600 10.5px var(--font-mono);color:#fff;background:rgba(7,16,27,.85);padding:2px 6px;border-radius:4px;white-space:nowrap;animation:fade 1.3s ease forwards}
+@keyframes fade{0%,65%{opacity:1}to{opacity:0}}
+.stamp{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-12deg) scale(1.7);opacity:0;border:4px solid var(--fake);color:var(--fake);background:rgba(7,16,27,.9);padding:10px 16px;border-radius:10px;font:700 36px/1 var(--font-display);letter-spacing:.08em;text-align:center;transition:.38s cubic-bezier(.2,1.5,.4,1);z-index:9;pointer-events:none;white-space:nowrap}
+.stamp small{display:block;font:600 12px var(--font-mono);letter-spacing:0;margin-top:6px}
+.stamp.show{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1)}
+
+/* Center: monitor */
+.monitor{display:grid;grid-template-rows:200px 1fr;gap:16px;min-height:0;position:relative}
+#ecg{width:100%;height:140px;display:block}
+.row2{display:grid;grid-template-columns:330px 1fr;gap:16px;min-height:0}
+#radar{width:290px;height:290px;display:block;margin:0 auto}
+.legend{display:flex;gap:14px;justify-content:center;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+#list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+#list li{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;transition:border-color .4s}
+#list li.hot{border-color:color-mix(in srgb,var(--deal) 60%,transparent)}
+#list .nm{font-weight:600;font-size:16px}
+#list .nm small{color:var(--muted);font-weight:400;margin-left:6px;font-size:13px}
+#list .rl{font-size:12px;color:var(--muted)}
+#list .st{grid-row:1/3;grid-column:2;align-self:center}
+.guard{margin-top:auto;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.guard div{display:flex;gap:8px;align-items:flex-start}
+.guard svg{width:14px;height:14px;fill:var(--calm);flex:none;margin-top:2px}
+
+/* Maya's phone at her break */
+.mini{position:absolute;left:50%;top:50%;width:236px;height:470px;margin:-220px 0 0 -118px;border-radius:38px;background:#02060b;padding:9px;box-shadow:0 0 0 1px #2a3d55,0 40px 80px rgba(0,0,0,.65);opacity:0;transform:translateY(30px) scale(.96);transition:.45s ease;pointer-events:none;z-index:20}
+.mini.show{opacity:1;transform:none}
+.mini-tag{position:absolute;top:-30px;left:-40px;right:-40px;text-align:center;font:600 15px var(--font-display);letter-spacing:.12em;text-transform:uppercase;color:var(--cash)}
+.mini-screen{position:relative;width:100%;height:100%;border-radius:30px;overflow:hidden;background:linear-gradient(170deg,#25324a,#0b1320 55%,#30203a);color:#fff}
+.ap-time{text-align:center;font:600 46px/1 var(--font-display);margin-top:14px}
+.ap-card{margin:18px 10px 0;padding:11px;border-radius:16px;background:rgba(255,255,255,.14);display:flex;flex-direction:column;gap:5px;font-size:11.5px;line-height:1.35}
+.ap-card .nh{display:flex;align-items:center;gap:6px;font-size:10px;color:#d6e1ec}
+.ap-card .nh svg{width:12px;height:12px;fill:var(--deal)}
+.ap-card b{font-size:13px}
+.ap-card p{margin:0;color:#e8eef4}
+.ap-card .cd2{color:var(--deal);font-variant-numeric:tabular-nums}
+.ap-btns{position:absolute;left:8%;right:8%;bottom:8%;height:8%;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ap-btns span{display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.16);font-weight:600;font-size:13px}
+.ap-btns .buy{background:var(--calm);color:#04210f}
+.ap-btns .bought{grid-column:1/-1;background:color-mix(in srgb,var(--calm) 25%,transparent);color:var(--calm)}
+
+/* Right: vitals and log */
+.side{display:grid;grid-template-rows:auto 1fr;gap:16px;min-height:0}
+.vitals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vital{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 16px 12px 18px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;--c:var(--ink)}
+.vital::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.vital label{font:600 13px/1 var(--font-display);letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.vital .v{display:flex;align-items:baseline;gap:10px}
+.vital output{font:600 42px/1 var(--font-display);font-variant-numeric:tabular-nums}
+.vital span{font-size:12px;color:var(--muted)}
+.vital.hero{grid-column:1/-1}
+.vital.hero output{font-size:60px;color:var(--calm)}
+.vital.wide{grid-column:1/-1}
+.vital.calm{--c:var(--calm)} .vital.deal{--c:var(--deal)} .vital.fake{--c:var(--fake)} .vital.cash{--c:var(--cash)}
+.vital.bump{animation:bump .8s ease}
+@keyframes bump{35%{box-shadow:inset 0 0 0 2px var(--c)}}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;width:0;background:var(--cash);transition:width .7s ease}
+#log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;overflow:hidden;min-height:0;flex:1;-webkit-mask-image:linear-gradient(#000 78%,transparent);mask-image:linear-gradient(#000 78%,transparent)}
+.log-item{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:start;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--line) 50%,transparent)}
+.log-item time{font:500 12px var(--font-mono);color:var(--muted);padding-top:2px}
+.log-item b{font-weight:600;font-size:14px}
+.log-item.new{animation:logIn .5s ease both}
+@keyframes logIn{from{opacity:0;transform:translateY(-8px)}}
+.tools{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.tools span{font:500 10px var(--font-mono);color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.chip{font:600 11px/1.2 var(--font-body);padding:4px 8px;border-radius:999px;white-space:nowrap;border:1px solid currentColor}
+.k-good{color:var(--calm)} .k-fake{color:var(--fake)} .k-deal{color:var(--deal)} .k-neutral{color:var(--muted)} .k-cash{color:var(--cash)}
+
+/* Final card */
+.final{position:absolute;inset:0;border-radius:18px;background:color-mix(in srgb,var(--bg) 94%,transparent);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;text-align:center;opacity:0;pointer-events:none;transition:opacity .9s ease;z-index:30}
+.final.show{opacity:1}
+.final h2{font:700 74px/1.02 var(--font-display);margin:0;text-wrap:balance;letter-spacing:.01em}
+.final .nums{display:flex;gap:64px;justify-content:center}
+.final .nums div{display:flex;flex-direction:column;gap:8px}
+.final .nums b{font:600 76px/1 var(--font-display);font-variant-numeric:tabular-nums}
+.final .nums span{font:600 14px var(--font-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.final p{margin:0;color:var(--muted);font-size:20px}
+.final .tag{display:flex;align-items:center;gap:10px;font:600 26px var(--font-display);letter-spacing:.04em}
+.final .tag svg{width:24px;height:24px;fill:var(--deal)}
+.final .sponsors{display:flex;gap:10px;justify-content:center}
+.final .sponsors span{font:500 13px var(--font-mono);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 10px}
+
+/* Bottom: captions and director timeline */
+.bottom{display:grid;grid-template-rows:62px 1fr;gap:12px}
+.caption{display:flex;align-items:center;gap:16px;padding:0 20px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.tool{font:600 13px/1 var(--font-mono);padding:7px 10px;border-radius:8px;background:var(--ink);color:var(--bg);white-space:nowrap}
+#capText{margin:0;font-size:20px;line-height:1.3}
+.timeline{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;padding:0 6px}
+.controls{display:flex;gap:8px}
+.controls button{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 13px var(--font-body);cursor:pointer}
+.controls button:hover{border-color:var(--muted)}
+.controls button svg{width:16px;height:16px;fill:currentColor}
+.controls button.primary{background:var(--deal);border-color:var(--deal);color:#1a1205;padding:0 18px;min-width:96px;justify-content:center}
+.controls button[aria-pressed="true"]{border-color:var(--calm);color:var(--calm)}
+button:focus-visible{outline:2px solid var(--deal);outline-offset:2px}
+.track{position:relative;height:50px;margin:0 30px}
+.rail,.fill{position:absolute;left:0;top:13px;height:4px;border-radius:2px}
+.rail{right:0;background:var(--line)}
+.fill{width:0;background:var(--cash)}
+.mk{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 2px;font:500 11px/1.2 var(--font-mono);white-space:nowrap}
+.mk i{width:13px;height:13px;border-radius:50%;background:var(--bg);border:2px solid var(--muted);margin-top:4px}
+.mk.done i{background:var(--cash);border-color:var(--cash)}
+.mk.cur{color:var(--ink)}
+.mk.cur i{border-color:var(--deal);box-shadow:0 0 0 4px color-mix(in srgb,var(--deal) 30%,transparent)}
+.mode{font:600 12px var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;text-align:right;line-height:1.5}
+.mode kbd{font:inherit;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>Lightning Rod</div>
+    <div class="who"><b>Maya</b> · ER nurse · shift 06:00 to 18:00 · Black Friday, Nov 27</div>
+    <div class="clock" id="clock" aria-label="Time in the story">06:00</div>
+    <div class="dnd" id="dnd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg><span>Do Not Disturb</span><b id="dndState">OFF</b></div>
+  </header>
+
+  <main class="main">
+    <section class="phone-col" aria-label="The phone">
+      <div class="phone-label" id="phoneLabel">Maya's phone</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen" id="screen">
+          <div class="taps" id="taps"></div>
+          <div class="stamp" id="stamp">NOT A DEAL<small>$649 on Oct 14</small></div>
+        </div>
+      </div>
+      <div class="phone-foot" id="phoneFoot">Lightning Rod web app on Replit</div>
+    </section>
+
+    <section class="monitor" aria-label="Maya's shift">
+      <div class="panel">
+        <div class="panel-head"><span class="ch calm">Maya's shift</span><span>ER, bay 4 · a spike here would mean her phone interrupted her</span><span class="end"><b id="ecgRead">0</b> interruptions</span></div>
+        <canvas id="ecg" width="1448" height="280" aria-hidden="true"></canvas>
+      </div>
+      <div class="row2">
+        <div class="panel">
+          <div class="panel-head"><span class="ch deal">Deal radar</span><span class="end"><b id="scanRead">0</b> deals scanned</span></div>
+          <canvas id="radar" width="580" height="580" aria-hidden="true"></canvas>
+          <div class="legend"><span><i style="background:var(--muted)"></i>Scanned</span><span><i style="background:var(--fake)"></i>Fake</span><span><i style="background:var(--deal)"></i>Real</span><span><i style="background:var(--calm)"></i>Bought</span></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="ch cash">Maya's list</span><span class="end">budget <b>$750</b></span></div>
+          <ul id="list"></ul>
+          <div class="guard">
+            <div><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Shopping never breaks Do Not Disturb.</div>
+            <div><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Anything not pre-approved waits for her 14:15 break.</div>
+            <div><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Pays only with the card saved in the store app. Never types card numbers.</div>
+          </div>
+        </div>
+      </div>
+      <div class="mini" id="approval" aria-hidden="true">
+        <div class="mini-tag">Maya's phone · her break</div>
+        <div class="mini-screen">
+          <div class="sb"><span class="sb-time">14:15</span><span class="ic"><i class="sig"></i><i class="bat"></i></span></div>
+          <div class="ap-time sb-time">14:15</div>
+          <div class="ap-card">
+            <div class="nh"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>Lightning Rod · now</div>
+            <b>Buy Hush 900 headphones for Daniel?</b>
+            <p>$279 · lowest in 90 days (usually $328)</p>
+            <p>Hold ends in <b class="cd2">2:00</b></p>
+          </div>
+          <div class="ap-btns" id="apBtns"><span>Skip</span><span class="buy">Buy</span></div>
+          <div class="taps" id="apTaps"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="side" aria-label="Vitals and agent log">
+      <div class="vitals">
+        <div class="vital hero calm"><label>Interruptions</label><div class="v"><output id="vInt">0</output><span>Maya's phone has not rung, buzzed or lit up for a deal.</span></div></div>
+        <div class="vital deal"><label>Saved</label><output id="vSaved">$0</output><span>vs. usual 90-day price</span></div>
+        <div class="vital fake"><label>Fake deals dodged</label><output id="vFake">0</output><span>price history via Tavily</span></div>
+        <div class="vital wide cash"><label>Spent</label><div class="v"><output id="vSpent">$0</output><span>of $750 budget</span></div><div class="bar"><i id="vBar"></i></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="ch">Agent log</span><span class="end">LangSmith trace</span></div>
+        <ol id="log"></ol>
+      </div>
+    </section>
+
+    <div class="final" id="final" aria-hidden="true">
+      <h2>Maya didn't miss a deal.<br>Her patients didn't miss Maya.</h2>
+      <div class="nums">
+        <div><b style="color:var(--calm)">0</b><span>Interruptions</span></div>
+        <div><b style="color:var(--deal)">$129</b><span>Saved</span></div>
+        <div><b style="color:var(--fake)">9</b><span>Fake deals dodged</span></div>
+        <div><b style="color:var(--cash)">$698</b><span>Spent of $750</span></div>
+      </div>
+      <p>Leo's NovaPlay arrives Tuesday.</p>
+      <div class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>Lightning Rod · It catches the deals. You keep your day.</div>
+      <div class="sponsors"><span>Phone Use</span><span>LangGraph</span><span>LangSmith</span><span>Tavily</span><span>ElevenLabs</span><span>Replit</span></div>
+    </div>
+  </main>
+
+  <footer class="bottom">
+    <div class="caption" aria-live="polite"><span class="tool" id="capTool">Director</span><p id="capText">Press Play or the space bar to start the run.</p></div>
+    <div class="timeline">
+      <div class="controls">
+        <button id="bRestart" title="Restart (R)" aria-label="Restart"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+        <button id="bPrev" title="Back one beat (Left arrow)"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>Back</button>
+        <button id="bPlay" class="primary" title="Play or pause (Space)"><svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg><span id="playText">Play</span></button>
+        <button id="bNext" title="Skip to the next beat (Right arrow)">Skip<svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+        <button id="bVoice" aria-pressed="false" title="Read the summary aloud with the browser's voice (V). On stage, ElevenLabs does this."><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg><span id="voiceText">Voice off</span></button>
+      </div>
+      <div class="track" id="track"><div class="rail"></div><div class="fill" id="fill"></div></div>
+      <div class="mode">Director mode · recorded run<br><kbd>Space</kbd> play · <kbd>←</kbd> <kbd>→</kbd> beats</div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CANCEL = Symbol('cancel');
+
+/* Fit the 1600x900 stage to any window */
+const stage = $('stage');
+function fit(){ const s = Math.min(innerWidth / 1600, innerHeight / 900); stage.style.transform = `translate(-50%,-50%) scale(${s})`; }
+addEventListener('resize', fit); fit();
+
+const css = getComputedStyle(document.documentElement);
+const col = {}; ['calm','cash','deal','fake','line','muted','ink'].forEach(k => col[k] = css.getPropertyValue('--' + k).trim());
+function rgba(hex, a){ const h = hex.replace('#',''); const n = parseInt(h, 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const pad = n => String(n).padStart(2, '0');
+const fmt = m => `${pad(Math.floor(m / 60))}:${pad(Math.floor(m % 60))}`;
+const money = n => '$' + Math.round(n).toLocaleString('en-US');
+function mmss(min){ const s = Math.max(0, Math.round(min * 60)); return `${Math.floor(s / 60)}:${pad(s % 60)}`; }
+
+/* Icons and product art (fictional products) */
+const BOLT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>';
+const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+const ART = {
+  tv: '<svg viewBox="0 0 200 120" aria-hidden="true"><rect x="16" y="6" width="168" height="94" rx="5" fill="#1d2433"/><rect x="22" y="12" width="156" height="82" rx="2" fill="#3b6fa8"/><path d="M22 94 120 12h58v28L80 94z" fill="#6c9bd0" opacity=".5"/><rect x="92" y="100" width="16" height="8" fill="#1d2433"/><rect x="66" y="108" width="68" height="5" rx="2" fill="#1d2433"/></svg>',
+  phones: '<svg viewBox="0 0 200 120" aria-hidden="true"><path d="M52 86V62a48 48 0 0 1 96 0v24" fill="none" stroke="#2b2f3a" stroke-width="10" stroke-linecap="round"/><rect x="34" y="66" width="32" height="48" rx="13" fill="#2b2f3a"/><rect x="134" y="66" width="32" height="48" rx="13" fill="#2b2f3a"/><rect x="41" y="75" width="18" height="30" rx="8" fill="#4b5263"/><rect x="141" y="75" width="18" height="30" rx="8" fill="#4b5263"/></svg>',
+  console: '<svg viewBox="0 0 200 120" aria-hidden="true"><rect x="22" y="28" width="26" height="70" rx="11" fill="#c9ced8"/><rect x="152" y="28" width="26" height="70" rx="11" fill="#c9ced8"/><rect x="46" y="28" width="108" height="70" rx="6" fill="#1f232c"/><rect x="53" y="35" width="94" height="56" rx="3" fill="#7c6cff"/><circle cx="35" cy="48" r="5" fill="#3a3f4b"/><circle cx="165" cy="76" r="5" fill="#3a3f4b"/><circle cx="35" cy="78" r="3" fill="#3a3f4b"/><circle cx="165" cy="46" r="3" fill="#3a3f4b"/></svg>',
+};
+const shape = c => `<svg viewBox="0 0 40 30" aria-hidden="true"><rect x="8" y="5" width="24" height="20" rx="6" fill="${c}"/></svg>`;
+
+/* Fictional stores */
+const BR = { bc: ['Brightcart', '#ff7a3d'], vl: ['Voltline', '#7c6cff'], np: ['Northpeak', '#0f9f92'] };
+function sb(s){ return `<div class="sb"><span class="sb-time">${fmt(s.clock)}</span><span class="ic">${s.dnd ? MOON : ''}<i class="sig"></i><i class="bat"></i></span></div>`; }
+function band(s, k, o = {}){ const name = BR[k][0]; return `<div class="band">${sb(s)}<div class="row">${o.back ? '<span class="back">‹</span>' : ''}<span>${o.title || name}</span><span class="cart">${o.right ?? 'Cart'}</span></div>${o.search === false ? '' : `<div class="search">Search ${name}</div>`}</div>`; }
+const store = (k, inner) => `<div class="store" style="--brand:${BR[k][1]}">${inner}</div>`;
+const rowDeal = (name, price, off, c) => `<div class="row-item"><div class="thumb">${shape(c)}</div><div class="grow"><div>${name}</div><div class="meta">${off}</div></div><b>${price}</b></div>`;
+const tile = (name, price, off, c) => `<div class="tile"><div class="thumb">${shape(c)}</div><b>${price}</b><span>${name}</span><em>${off}</em></div>`;
+const ldeal = (name, price, pct) => `<div class="ld"><div class="top2"><span>${name}</span><b>${price}</b></div><div class="claimed"><i style="width:${pct}"></i></div><div class="meta">${pct} claimed</div></div>`;
+
+const SCREENS = {
+  setup: s => `<div class="lr">${sb(s)}
+    <h3>Black Friday list</h3><p class="sub">Lightning Rod · budget $750</p>
+    <div class="it"><b>NovaPlay 2 console bundle</b><small>for Leo</small><span class="rule" style="color:var(--calm)">Pre-approved up to $450</span></div>
+    <div class="it"><b>Hush 900 headphones</b><small>for Daniel</small><span class="rule" style="color:var(--deal)">Ask me first · up to $300</span></div>
+    <div class="it"><b>65″ TV</b><small>living room</small><span class="rule" style="color:var(--muted)">Only at a real low price</span></div>
+    <div class="note">Don't interrupt my shift. Ask me on my break at 14:15.</div>
+    <div class="cta ${s.dnd ? 'on' : ''}">${s.dnd ? 'Do Not Disturb is on' : 'Turn on Do Not Disturb'}</div></div>`,
+  handoff: s => `<div class="home">${sb(s)}
+    <div class="widget"><div class="w-h">${BOLT}Lightning Rod agent</div><b>Watching 3 store apps</b><small>Maya's phone is in her locker. Do Not Disturb is on.</small></div>
+    <div class="apps">${['bc','vl','np'].map(k => `<div class="app"><i style="background:${BR[k][1]}">${BR[k][0][0]}</i><span>${BR[k][0]}</span></div>`).join('')}</div></div>`,
+  'bc-home': s => store('bc', `${band(s,'bc')}
+    <div class="banner"><div><span class="badge gold">DOORBUSTER</span><div class="big">50% OFF</div><div style="font-size:11px;opacity:.85">Aurora 65″ 4K TV</div></div><div>${ART.tv}</div></div>
+    <div class="below">${rowDeal('Air fryer, 6 qt','$39','60% off','#f4a261')}${rowDeal('Robot vacuum','$129','45% off','#94a3b8')}${rowDeal('Smart speaker','$19','62% off','#a78bfa')}</div>`),
+  'bc-tv': s => store('bc', `${band(s,'bc',{back:true, search:false})}<div class="body">
+    <div class="art">${ART.tv}</div><span class="badge">DOORBUSTER · 50% OFF</span>
+    <div class="pname">Aurora 65″ 4K Smart TV</div>
+    <div class="price"><b>$649</b><s>was $1,299</s></div>
+    <div class="meta">Ends at midnight · Sold by Brightcart</div></div><div class="cta">Add to cart</div>`),
+  'vl-home': s => store('vl', `${band(s,'vl')}<div class="body"><div class="sect">Black Friday deals</div><div class="grid2">${tile('Laptop 14″','$499','29% off','#cbd5e1')}${tile('Earbuds','$59','40% off','#fda4af')}${tile('Monitor 27″','$179','35% off','#93c5fd')}${tile('Tablet 11″','$229','30% off','#c4b5fd')}</div></div>`),
+  'np-home': s => store('np', `${band(s,'np')}<div class="body"><div class="sect">Lightning deals</div>${ldeal('Smartwatch','$149','72%')}${ldeal('Blender','$49','41%')}${ldeal('Speaker','$69','88%')}${ldeal('Drone','$219','23%')}</div>`),
+  'vl-console': s => store('vl', `${band(s,'vl',{back:true, search:false})}<div class="body">
+    <div class="art">${ART.console}</div><span class="badge green">BACK IN STOCK</span>
+    <div class="pname">NovaPlay 2 console bundle</div>
+    <div class="price"><b>$449</b><s>usually $499</s></div>
+    <div class="meta">Only 3 left · ships Monday</div></div><div class="cta">Add to cart</div>`),
+  'vl-cart': s => store('vl', `${band(s,'vl',{back:true, search:false, title:'Cart (1)', right:'Edit'})}<div class="body">
+    <div class="row-item"><div class="thumb">${ART.console}</div><div class="grow"><div>NovaPlay 2 console bundle</div><div class="meta">Qty 1</div></div><b>$449</b></div>
+    <div class="kv"><span>Subtotal</span><b>$449.00</b></div></div><div class="cta">Checkout</div>`),
+  'vl-checkout': s => store('vl', `${band(s,'vl',{back:true, search:false, title:'Checkout', right:''})}<div class="body">
+    <div class="kv"><span>Ship to</span><b>Home</b></div>
+    <div class="kv"><span>Pay with</span><b>Saved card ending 0417</b></div>
+    <div class="kv"><span>Arrives</span><b>Tue, Dec 1</b></div>
+    <div class="kv"><span>Total</span><b>$449.00</b></div></div><div class="cta">Place order</div>`),
+  'vl-done': s => store('vl', `${band(s,'vl',{search:false})}<div class="done"><div class="ok">${CHECK}</div><h4>Order placed</h4><div class="meta">VL-20931 · arrives Tue, Dec 1</div></div>`),
+  'np-deal': s => store('np', `${band(s,'np',{back:true, search:false})}<div class="body">
+    <div class="art">${ART.phones}</div><span class="badge">${'LIGHTNING DEAL'}</span>
+    <div class="pname">Hush 900 noise-cancelling headphones</div>
+    <div class="price"><b>$279</b><s>list $449</s><em>38% off</em></div>
+    <div class="claimed"><i style="width:64%"></i></div><div class="meta">64% claimed · ends in 08:12</div></div><div class="cta">Add to cart</div>`),
+  'np-held': s => store('np', `${band(s,'np',{back:true, search:false, title:'Cart (1)', right:''})}<div class="body">
+    <div class="row-item"><div class="thumb">${ART.phones}</div><div class="grow"><div>Hush 900 headphones</div><div class="meta">Lightning deal price</div></div><b>$279</b></div>
+    <div class="hold"><span class="meta">Deal price held for</span><b class="cd" id="cd">${s.hold ? mmss(s.hold.endsAt - s.clock) : '0:00'}</b><span class="meta">Lightning Rod is waiting for Maya's yes</span></div>
+    <div class="kv"><span>Asks Maya at</span><b>14:15 break</b></div>
+    <div class="kv"><span>Her break, from</span><b>Calendar</b></div></div>
+    <div class="cta wait">Checkout · waiting for Maya</div>`),
+  'np-done': s => store('np', `${band(s,'np',{search:false})}<div class="done"><div class="ok">${CHECK}</div><h4>Order placed</h4><div class="meta">NP-48213 · $279 · approved by Maya</div></div>`),
+  'np-drop': s => store('np', `${band(s,'np',{back:true, search:false})}<div class="body">
+    <div class="art">${ART.phones}</div><span class="badge green">PRICE DROPPED</span>
+    <div class="pname">Hush 900 noise-cancelling headphones</div>
+    <div class="price"><b>$249</b><s>$279</s></div>
+    <div class="note-l">You bought this for $279 today. Price match covers drops within 14 days.</div></div><div class="cta">Chat with us</div>`),
+  'np-chat': (s, inPlace) => {
+    const msgs = [
+      `<div class="msg me"><small>Maya's AI assistant</small>Hi, this is Maya's AI assistant. Order NP-48213 dropped from $279 to $249 today, within your 14-day price match. Could you refund the $30 difference?</div>`,
+      `<div class="msg them"><small>Northpeak help</small>Thanks for letting us know! I've refunded $30.00 to the original payment method. It will show in 3 to 5 days.</div>`,
+    ].slice(0, s.chat).map((m, i, a) => (inPlace && i === a.length - 1) ? m.replace('class="msg', 'class="msg new') : m).join('');
+    return store('np', `${band(s,'np',{back:true, search:false, title:'Northpeak help', right:''})}<div class="chat">${msgs}</div><div class="typebar">Message</div>`);
+  },
+  lock: s => `<div class="lock">${sb(s)}<div class="lt sb-time">${fmt(s.clock)}</div><div class="ld2">Friday, November 27</div>
+    <div class="notif"><div class="nh">${BOLT}Lightning Rod<span>now</span></div><b>Everything's handled.</b><p>Leo's NovaPlay arrives Tuesday. Spent $698 of $750 · 9 fake deals skipped · $30 back.</p></div>
+    <div class="dndoff">Do Not Disturb ended at 18:00</div></div>`,
+};
+
+/* The list Maya set */
+const LIST = [
+  { k:'console', name:'NovaPlay 2 bundle', who:'for Leo', rule:'Pre-approved up to $450' },
+  { k:'headphones', name:'Hush 900 headphones', who:'for Daniel', rule:'Ask Maya first · up to $300' },
+  { k:'tv', name:'65″ TV', who:'living room', rule:'Only at a real low price' },
+];
+
+function initialState(){
+  return {
+    clock: 360, dnd: false, label: "Maya's phone", foot: 'Lightning Rod web app on Replit',
+    screen: 'setup', chat: 0, stamp: false, approval: null, hold: null, final: false,
+    c: { int: 0, saved: 0, spent: 0, fake: 0, scanned: 0 },
+    list: { console: ['Watching','neutral'], headphones: ['Watching','neutral'], tv: ['Watching','neutral'] },
+    log: [{ t:'06:00', title:'Maya set her list · budget $750', chip:'Rules set', kind:'cash', tools:['Replit','LangGraph'] }],
+    caption: ['Director', 'Press Play or the space bar to start the run.'],
+    blips: [], seed: 1,
+  };
+}
+
+/* The story, beat by beat. Times are minutes after midnight. */
+const homes = ['vl-home','np-home','bc-home'];
+const BEATS = [
+  { time: 360, travel: 0, label: 'Setup', steps: [
+    { caption: ['Replit', `Maya opens Lightning Rod. Her list: Leo's NovaPlay 2 bundle, headphones for her brother Daniel, and a TV only at a real low price.`], wait: 3400 },
+    { tap: [500, 930], a: s => { s.dnd = true; }, caption: ['LangGraph', `Rules set. Budget $750. Shopping never breaks Do Not Disturb. Questions wait for her 14:15 break.`], wait: 3200 },
+    { a: s => { s.label = "Agent's phone"; s.foot = 'Phone Use cloud phone · 0-1000 tap grid'; s.screen = 'handoff'; }, caption: ['Phone Use', `Maya's phone goes in her locker. The agent picks up its own phone and starts watching three store apps.`], wait: 3200 },
+  ]},
+  { time: 9 * 60 + 14, travel: 1800, label: 'Fake deal', steps: [
+    { a: s => { s.screen = 'bc-home'; s.c.scanned += 22; }, blip: { store: 0, kind: 'scan', scans: 6 }, caption: ['Phone Use', `open_app("Brightcart"), then reads the doorbuster page from a screenshot.`], wait: 2600 },
+    { tap: [500, 350], a: s => { s.screen = 'bc-tv'; }, caption: ['Phone Use', `Aurora 65″ TV, $649, "50% off, was $1,299". It's on Maya's list, but only at a real low price.`], wait: 3000 },
+    { a: s => { s.stamp = true; s.c.fake = 1; s.list.tv = ['Skipped · not a real low','fake']; s.log.unshift({ t:'09:14', title:'Aurora 65″ TV · $649', chip:'Skipped · not a deal', kind:'fake', tools:['Phone Use','Tavily'] }); }, blip: { store: 0, kind: 'fake' }, caption: ['Tavily', `Price history: $649 on Oct 14, $599 on Sep 2. The "50% off" is fake. Skipping.`], wait: 3600 },
+  ]},
+  { time: 9 * 60 + 30, travel: 700, label: 'Scanning', steps: [
+    ...Array.from({ length: 8 }, (_, k) => ({
+      clock: 9 * 60 + 30 + k * 20, clockMs: 450,
+      a: s => { s.stamp = false; s.screen = homes[k % 3]; s.c.fake += 1; s.c.scanned += 24; },
+      blip: { store: [1, 2, 0][k % 3], kind: 'fake', scans: 4 },
+      caption: k === 0 ? ['LangGraph', `Checking three store apps every minute. Every "deal" gets a price-history check before anything else.`] : null,
+      wait: k === 0 ? 2800 : 700,
+    })),
+    { a: s => { s.log.unshift({ t:'12:10', title:'8 more fake discounts', chip:'Skipped', kind:'fake', tools:['Tavily','LangGraph'] }); }, caption: ['LangSmith', `214 deals scanned by noon. 9 fake discounts skipped, each one logged with its evidence.`], wait: 3000 },
+  ]},
+  { time: 12 * 60 + 30, travel: 1400, label: 'Restock', steps: [
+    { a: s => { s.screen = 'vl-console'; s.list.console = ['In stock · buying','deal']; }, blip: { store: 1, kind: 'real' }, caption: ['Phone Use', `NovaPlay 2 bundle is back in stock at Voltline. $449. Only 3 left.`], wait: 2800 },
+    { caption: ['LangGraph', `Maya pre-approved this up to $450. Buying now. No need to interrupt her.`], wait: 2600 },
+    { tap: [500, 930], a: s => { s.screen = 'vl-cart'; }, wait: 1300 },
+    { tap: [500, 930], a: s => { s.screen = 'vl-checkout'; }, caption: ['Phone Use', `Paying with the card already saved in the app. The agent never types card numbers.`], wait: 2600 },
+    { tap: [500, 930], clock: 12 * 60 + 31, clockMs: 300, a: s => { s.screen = 'vl-done'; s.c.spent = 449; s.c.saved = 50; s.list.console = ['Bought · $449','good']; s.log.unshift({ t:'12:31', title:'NovaPlay 2 bundle · $449', chip:'Bought · pre-approved', kind:'good', tools:['Phone Use','LangGraph'] }); }, blip: { store: 1, kind: 'bought' }, caption: ['LangSmith', `Order VL-20931 placed. $50 under its usual $499. Receipt and screenshots saved.`], wait: 3400 },
+  ]},
+  { time: 14 * 60 + 2, travel: 1400, label: 'Lightning deal', steps: [
+    { a: s => { s.screen = 'np-deal'; }, caption: ['Phone Use', `Lightning deal at Northpeak: Hush 900 headphones, $279, 38% off, 64% claimed.`], wait: 2800 },
+    { blip: { store: 2, kind: 'real' }, caption: ['Tavily', `Lowest price in the last 90 days was $328. This deal is real.`], wait: 2600 },
+    { tap: [500, 930], a: s => { s.screen = 'np-held'; s.hold = { endsAt: 14 * 60 + 17 }; s.list.headphones = ['Held for Maya','deal']; s.log.unshift({ t:'14:02', title:'Hush 900 · $279', chip:'Held · 15 min', kind:'deal', tools:['Phone Use','Tavily'] }); }, caption: ['LangGraph', `Not pre-approved, so Maya decides. Her break starts at 14:15. The hold lasts until 14:17. Holding it.`], wait: 3800 },
+  ]},
+  { time: 14 * 60 + 15, travel: 2800, label: 'Her break', steps: [
+    { a: s => { s.approval = 'ask'; }, caption: ['Replit', `14:15. Maya opens her phone on her break. One card is waiting. Nothing rang.`], wait: 3400 },
+    { tapTarget: 'approval', tap: [724, 880], clock: 14 * 60 + 15.2, clockMs: 400, a: s => { s.approval = 'yes'; s.hold = null; s.screen = 'np-done'; s.c.spent = 728; s.c.saved = 99; s.list.headphones = ['Bought · $279','good']; s.log.unshift({ t:'14:15', title:'Hush 900 · approved by Maya', chip:'Bought · approved', kind:'good', tools:['LangGraph','Phone Use'] }); }, blip: { store: 2, kind: 'bought' }, caption: ['LangGraph', `Maya tapped Buy with 1:48 left on the hold. Bought. Back to work, Maya.`], wait: 3200 },
+    { a: s => { s.approval = null; }, wait: 800 },
+  ]},
+  { time: 16 * 60 + 40, travel: 1600, label: 'Price drop', steps: [
+    { a: s => { s.screen = 'np-drop'; }, blip: { store: 2, kind: 'real' }, caption: ['Phone Use', `Hush 900 dropped to $249. Maya paid $279 at 14:15.`], wait: 2800 },
+    { tap: [500, 930], a: s => { s.screen = 'np-chat'; s.chat = 1; }, caption: ['Phone Use', `type_text in Northpeak's support chat. It always says who it is.`], wait: 3800 },
+    { clock: 16 * 60 + 42, clockMs: 600, a: s => { s.chat = 2; s.c.saved = 129; s.c.spent = 698; s.list.headphones = ['Bought · $249 after refund','good']; s.log.unshift({ t:'16:42', title:'Price match · Northpeak', chip:'Refunded $30', kind:'good', tools:['Phone Use','LangSmith'] }); }, caption: ['LangSmith', `$30 back. The chat transcript is saved with the order.`], wait: 3400 },
+  ]},
+  { time: 18 * 60 + 5, travel: 1600, label: 'Shift ends', steps: [
+    { a: s => { s.label = "Maya's phone"; s.foot = 'Out of the locker at 18:05'; s.screen = 'lock'; s.dnd = false; }, caption: ['ElevenLabs', `"Leo's NovaPlay arrives Tuesday. You spent $698 of $750, skipped 9 fake deals, and got $30 back. Nothing interrupted your shift."`], speak: true, wait: 6800 },
+    { a: s => { s.final = true; }, caption: ['Director', `Lightning Rod. It catches the deals. You keep your day.`], wait: 1500 },
+  ]},
+];
+
+/* State and rendering */
+let S = initialState();
+let next = 0, playing = false, running = false, runId = 0, voiceOn = false;
+let shownKey = '', shownChat = -1, listKey = '', logKey = '', apKey = '';
+const screenEl = $('screen');
+
+function addBlip(spec, instant){
+  const SECT = [[-90, 30], [30, 150], [150, 270]];
+  const make = (st, kind) => {
+    S.seed += 1; const r = rng(S.seed * 7919);
+    const [a0, a1] = SECT[st];
+    S.blips.push({ kind, a: (a0 + 8 + r() * (a1 - a0 - 16)) * Math.PI / 180, r: 0.22 + r() * 0.7, born: instant ? -1e9 : performance.now() });
+  };
+  for (let i = 0; i < (spec.scans || 0); i++){ S.seed += 1; make(Math.floor(rng(S.seed)() * 3), 'scan'); }
+  if (spec.kind) make(spec.store, spec.kind);
+  while (S.blips.length > 90){ const i = S.blips.findIndex(b => b.kind === 'scan'); S.blips.splice(i < 0 ? 0 : i, 1); }
+}
+
+function swapScreen(instant){
+  const old = [...screenEl.querySelectorAll('.page')];
+  const pg = document.createElement('div');
+  pg.className = 'page' + (instant ? ' still' : '');
+  pg.innerHTML = SCREENS[S.screen](S, false);
+  screenEl.insertBefore(pg, $('taps'));
+  old.forEach(o => { if (instant) o.remove(); else { o.classList.add('out'); setTimeout(() => o.remove(), 320); } });
+}
+
+function tween(el, to, f, instant){
+  const from = el._v ?? 0; el._v = to;
+  if (instant || reduce || from === to){ el.textContent = f(to); return; }
+  const t0 = performance.now(), d = 800;
+  const box = el.closest('.vital'); if (box){ box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); }
+  (function step(now){ const p = Math.min(1, (now - t0) / d); const e = 1 - Math.pow(1 - p, 3); el.textContent = f(from + (to - from) * e); if (p < 1) requestAnimationFrame(step); })(t0);
+}
+
+function render(instant){
+  $('dnd').classList.toggle('on', S.dnd); $('dndState').textContent = S.dnd ? 'ON' : 'OFF';
+  $('phoneLabel').textContent = S.label; $('phoneFoot').textContent = S.foot;
+  const key = S.screen + (S.screen === 'setup' ? ':' + S.dnd : '');
+  if (key !== shownKey || instant){ swapScreen(instant); shownKey = key; shownChat = S.chat; }
+  else if (S.chat !== shownChat){ const pg = screenEl.querySelector('.page:not(.out)'); if (pg) pg.innerHTML = SCREENS[S.screen](S, true); shownChat = S.chat; }
+  $('stamp').classList.toggle('show', S.stamp);
+  $('approval').classList.toggle('show', !!S.approval);
+  const ak = S.approval || '';
+  if (ak !== apKey){ $('apBtns').innerHTML = S.approval === 'yes' ? '<span class="bought">Bought · order NP-48213</span>' : '<span>Skip</span><span class="buy">Buy</span>'; apKey = ak; }
+  $('final').classList.toggle('show', S.final);
+  $('final').setAttribute('aria-hidden', String(!S.final));
+  tween($('vInt'), S.c.int, v => String(Math.round(v)), instant);
+  tween($('vSaved'), S.c.saved, money, instant);
+  tween($('vFake'), S.c.fake, v => String(Math.round(v)), instant);
+  tween($('vSpent'), S.c.spent, money, instant);
+  $('vBar').style.width = (S.c.spent / 750 * 100) + '%';
+  $('ecgRead').textContent = S.c.int;
+  tween($('scanRead'), S.c.scanned, v => String(Math.round(v)), instant);
+  const lk = JSON.stringify(S.list);
+  if (lk !== listKey){
+    $('list').innerHTML = LIST.map(it => { const [txt, kind] = S.list[it.k]; return `<li class="${kind === 'deal' ? 'hot' : ''}"><span class="nm">${it.name}<small>${it.who}</small></span><span class="st"><span class="chip k-${kind}">${txt}</span></span><span class="rl">${it.rule}</span></li>`; }).join('');
+    listKey = lk;
+  }
+  const gk = S.log.length + ':' + S.log[0].title;
+  if (gk !== logKey){
+    $('log').innerHTML = S.log.map((e, i) => `<li class="log-item${i === 0 && !instant ? ' new' : ''}"><time>${e.t}</time><div><b>${e.title}</b><div class="tools">${e.tools.map(t => `<span>${t}</span>`).join('')}</div></div><span class="chip k-${e.kind}">${e.chip}</span></li>`).join('');
+    logKey = gk;
+  }
+  tickUI();
+}
+
+function tickUI(){
+  const t = fmt(S.clock);
+  $('clock').textContent = t;
+  document.querySelectorAll('.sb-time').forEach(el => { el.textContent = t; });
+  if (S.hold){ const left = mmss(S.hold.endsAt - S.clock); const cd = $('cd'); if (cd) cd.textContent = left; document.querySelectorAll('.cd2').forEach(el => { el.textContent = left; }); }
+  const T = BEATS.map(b => b.time), n = BEATS.length;
+  let pos = 0;
+  if (S.clock >= T[n - 1]) pos = 1;
+  else { for (let k = 0; k < n - 1; k++){ if (S.clock >= T[k] && S.clock < T[k + 1]){ pos = (k + (S.clock - T[k]) / (T[k + 1] - T[k])) / (n - 1); break; } } }
+  if (next === 0 && !running) pos = 0;
+  $('fill').style.width = (pos * 100) + '%';
+}
+
+let capJob = 0;
+function setCaption(cap, instant){
+  const [tool, text] = cap; $('capTool').textContent = tool;
+  const el = $('capText'); const job = ++capJob;
+  if (instant || reduce){ el.textContent = text; return 0; }
+  const cps = 0.065; let shown = 0, last = performance.now(); el.textContent = '';
+  (function step(now){ if (job !== capJob) return; if (playing) shown += (now - last) * cps; last = now; const k = Math.min(text.length, Math.floor(shown)); el.textContent = text.slice(0, k); if (k < text.length) requestAnimationFrame(step); })(last);
+  return text.length / cps;
+}
+
+function tapAt(target, [x, y]){
+  if (reduce) return;
+  const host = target === 'approval' ? $('apTaps') : $('taps');
+  const d = document.createElement('div'); d.className = 'tap'; d.style.left = x / 10 + '%'; d.style.top = y / 10 + '%';
+  const l = document.createElement('div'); l.className = 'tap-label'; l.style.left = x / 10 + '%'; l.style.top = y / 10 + '%'; l.textContent = `tap(${x}, ${y})`;
+  host.append(d, l); setTimeout(() => { d.remove(); l.remove(); }, 1400);
+}
+
+function speak(text){
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/["“”]/g, '')); u.rate = 1.02; speechSynthesis.speak(u); } catch (e) { /* voice unavailable */ }
+}
+
+/* Pausable timing */
+function wait(ms, id){
+  return new Promise((res, rej) => {
+    let left = ms, last = performance.now();
+    (function tick(now){ if (id !== runId) return rej(CANCEL); if (playing) left -= now - last; last = now; if (left <= 0) res(); else requestAnimationFrame(tick); })(last);
+  });
+}
+function animateClock(to, ms, id){
+  const from = S.clock;
+  if (reduce || !ms || from === to){ S.clock = to; tickUI(); return Promise.resolve(); }
+  return new Promise((res, rej) => {
+    let el = 0, last = performance.now();
+    (function f(now){ if (id !== runId) return rej(CANCEL); if (playing) el += now - last; last = now; const p = Math.min(1, el / ms); const e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; S.clock = from + (to - from) * e; tickUI(); if (p < 1) requestAnimationFrame(f); else res(); })(last);
+  });
+}
+
+async function playBeat(i, id){
+  const b = BEATS[i]; markTimeline();
+  await animateClock(b.time, b.travel, id);
+  for (const st of b.steps){
+    if (st.tap){ tapAt(st.tapTarget, st.tap); await wait(450, id); }
+    if (st.clock != null) await animateClock(st.clock, st.clockMs || 800, id);
+    if (st.a) st.a(S);
+    if (st.blip) addBlip(st.blip, false);
+    render(false);
+    let typeMs = 0;
+    if (st.caption){ S.caption = st.caption; typeMs = setCaption(st.caption, false); }
+    if (st.speak && voiceOn) speak(st.caption[1]);
+    await wait(Math.max(st.wait || 1200, st.caption ? typeMs + 900 : 0), id);
+  }
+}
+
+function applyInstant(i){
+  const b = BEATS[i]; S.clock = b.time;
+  for (const st of b.steps){ if (st.clock != null) S.clock = st.clock; if (st.a) st.a(S); if (st.blip) addBlip(st.blip, true); if (st.caption) S.caption = st.caption; }
+}
+
+async function runLoop(){
+  const id = ++runId; running = true; updatePlay();
+  try {
+    while (next < BEATS.length){ await playBeat(next, id); next++; markTimeline(); }
+    playing = false;
+  } catch (e) { if (e !== CANCEL) console.error(e); }
+  finally { if (id === runId){ running = false; updatePlay(); markTimeline(); } }
+}
+
+function resetTo(target){
+  runId++; running = false;
+  S = initialState();
+  for (let k = 0; k < target; k++) applyInstant(k);
+  next = target;
+  $('taps').innerHTML = ''; $('apTaps').innerHTML = '';
+  try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+  render(true); setCaption(S.caption, true); markTimeline();
+  if (playing) runLoop(); else updatePlay();
+}
+
+function togglePlay(){
+  if (playing){ playing = false; updatePlay(); return; }
+  playing = true;
+  if (next >= BEATS.length) resetTo(0);
+  if (!running) runLoop(); else updatePlay();
+}
+const skip = () => resetTo(Math.min(next + 1, BEATS.length));
+const back = () => resetTo(running ? next : Math.max(0, next - 1));
+
+function updatePlay(){
+  $('playText').textContent = playing ? 'Pause' : (next >= BEATS.length ? 'Replay' : 'Play');
+  $('playIcon').innerHTML = playing ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+}
+
+/* Timeline markers, evenly spaced by beat */
+const track = $('track');
+BEATS.forEach((b, i) => {
+  const m = document.createElement('button');
+  m.className = 'mk'; m.style.left = (i / (BEATS.length - 1) * 100) + '%';
+  m.innerHTML = `<i></i><span>${fmt(b.time)}</span><span>${b.label}</span>`;
+  m.title = `Jump to ${fmt(b.time)} · ${b.label}`;
+  m.addEventListener('click', () => resetTo(i));
+  track.appendChild(m);
+});
+function markTimeline(){
+  track.querySelectorAll('.mk').forEach((m, i) => { m.classList.toggle('done', i < next); m.classList.toggle('cur', i === next); });
+}
+
+$('bPlay').addEventListener('click', togglePlay);
+$('bNext').addEventListener('click', skip);
+$('bPrev').addEventListener('click', back);
+$('bRestart').addEventListener('click', () => { playing = false; resetTo(0); });
+function toggleVoice(){ voiceOn = !voiceOn; $('bVoice').setAttribute('aria-pressed', String(voiceOn)); $('voiceText').textContent = voiceOn ? 'Voice on' : 'Voice off'; if (!voiceOn){ try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } } }
+$('bVoice').addEventListener('click', toggleVoice);
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('button') && (e.key === ' ' || e.key === 'Enter')) return;
+  if (e.key === ' ' || e.key === 'k'){ e.preventDefault(); togglePlay(); }
+  else if (e.key === 'ArrowRight'){ e.preventDefault(); skip(); }
+  else if (e.key === 'ArrowLeft'){ e.preventDefault(); back(); }
+  else if (e.key === 'r' || e.key === 'R'){ playing = false; resetTo(0); }
+  else if (e.key === 'v' || e.key === 'V'){ toggleVoice(); }
+});
+
+/* Canvas: Maya's calm trace and the deal radar */
+const ecg = $('ecg'), ec = ecg.getContext('2d');
+function beatY(ph){ const g = (c, w, h) => h * Math.exp(-((ph - c) ** 2) / (2 * w * w)); return g(.16, .025, .10) - g(.29, .008, .12) + g(.32, .010, 1) - g(.35, .010, .28) + g(.56, .045, .22); }
+function drawEcg(now){
+  const W = ecg.width, H = ecg.height; ec.clearRect(0, 0, W, H);
+  ec.lineWidth = 1; ec.strokeStyle = rgba(col.line, 1);
+  for (let x = 0; x <= W; x += 40){ ec.beginPath(); ec.moveTo(x + .5, 0); ec.lineTo(x + .5, H); ec.stroke(); }
+  for (let y = 0; y <= H; y += 40){ ec.beginPath(); ec.moveTo(0, y + .5); ec.lineTo(W, y + .5); ec.stroke(); }
+  const period = 240, off = reduce ? 0 : now / 1000 * 260;
+  ec.beginPath();
+  for (let x = 0; x <= W; x += 2){ const ph = ((((x + off) % period) + period) % period) / period; const y = H * .64 - beatY(ph) * H * .5; if (x) ec.lineTo(x, y); else ec.moveTo(x, y); }
+  ec.strokeStyle = col.calm; ec.lineWidth = 3.2; ec.shadowColor = col.calm; ec.shadowBlur = 14; ec.stroke(); ec.shadowBlur = 0;
+}
+const radar = $('radar'), rc = radar.getContext('2d');
+const RR = 222, CX = 290, CY = 290;
+const SECTS = [['BRIGHTCART', -90, 30], ['VOLTLINE', 30, 150], ['NORTHPEAK', 150, 270]];
+function drawRadar(now){
+  rc.clearRect(0, 0, 580, 580);
+  rc.strokeStyle = rgba(col.line, 1); rc.lineWidth = 2;
+  [1, .66, .33].forEach(f => { rc.beginPath(); rc.arc(CX, CY, RR * f, 0, Math.PI * 2); rc.stroke(); });
+  SECTS.forEach(([, a0]) => { const a = a0 * Math.PI / 180; rc.beginPath(); rc.moveTo(CX, CY); rc.lineTo(CX + Math.cos(a) * RR, CY + Math.sin(a) * RR); rc.stroke(); });
+  rc.fillStyle = col.muted; rc.font = '600 24px "Barlow Condensed", sans-serif'; rc.textAlign = 'center'; rc.textBaseline = 'middle';
+  SECTS.forEach(([name, a0, a1]) => { const a = (a0 + a1) / 2 * Math.PI / 180; rc.fillText(name, CX + Math.cos(a) * (RR + 40), CY + Math.sin(a) * (RR + 40)); });
+  const sw = reduce ? -Math.PI / 2 : ((now / 1000) * 1.6) % (Math.PI * 2);
+  for (let i = 0; i < 28; i++){ const a1 = sw - i * .035, a0 = a1 - .036; rc.beginPath(); rc.moveTo(CX, CY); rc.arc(CX, CY, RR, a0, a1); rc.closePath(); rc.fillStyle = rgba(col.cash, .16 * (1 - i / 28)); rc.fill(); }
+  rc.strokeStyle = rgba(col.cash, .85); rc.lineWidth = 2; rc.beginPath(); rc.moveTo(CX, CY); rc.lineTo(CX + Math.cos(sw) * RR, CY + Math.sin(sw) * RR); rc.stroke();
+  for (const b of S.blips){
+    const x = CX + Math.cos(b.a) * b.r * RR, y = CY + Math.sin(b.a) * b.r * RR;
+    const age = now - b.born, grow = Math.min(1, age / 400);
+    if (b.kind === 'scan'){ rc.fillStyle = rgba(col.muted, .55); rc.beginPath(); rc.arc(x, y, 4 * grow, 0, Math.PI * 2); rc.fill(); }
+    else if (b.kind === 'fake'){ const z = 9 * grow; rc.strokeStyle = col.fake; rc.lineWidth = 4; rc.beginPath(); rc.moveTo(x - z, y - z); rc.lineTo(x + z, y + z); rc.moveTo(x + z, y - z); rc.lineTo(x - z, y + z); rc.stroke(); }
+    else {
+      const c = b.kind === 'bought' ? col.calm : col.deal;
+      const pulse = reduce ? 0 : (now % 1600) / 1600;
+      rc.fillStyle = c; rc.beginPath(); rc.arc(x, y, 9 * grow, 0, Math.PI * 2); rc.fill();
+      rc.strokeStyle = rgba(c, .7 * (1 - pulse)); rc.lineWidth = 3; rc.beginPath(); rc.arc(x, y, 10 + pulse * 22, 0, Math.PI * 2); rc.stroke();
+    }
+  }
+}
+function frame(now){ drawEcg(now); drawRadar(now); requestAnimationFrame(frame); }
+
+/* Start at rest: the opening frame of the story */
+render(true); setCaption(S.caption, true); markTimeline(); updatePlay();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

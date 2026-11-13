@@ -1,0 +1,10 @@
+{
+  "sample": true,
+  "taken": null,
+  "note": "SAMPLE numbers so the demo runs offline. Replace them at 9:30 with: python scripts/pick_products.py --write",
+  "items": {
+    "tv": {"title": "TCL 65\" QM7 QLED 4K TV", "prices": [{"store": "Best Buy", "price": 649.99}, {"store": "Walmart", "price": 648.0}, {"store": "Amazon", "price": 699.99}]},
+    "console": {"title": "PlayStation 5 Slim Bundle", "prices": [{"store": "Best Buy", "price": 499.99}, {"store": "Walmart", "price": 474.0}, {"store": "Target", "price": 499.99}]},
+    "headphones": {"title": "Sony WH-1000XM5 Headphones", "prices": [{"store": "Best Buy", "price": 399.99}, {"store": "Amazon", "price": 328.0}, {"store": "Target", "price": 349.99}]}
+  }
+}
